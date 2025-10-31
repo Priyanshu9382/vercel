@@ -7,6 +7,9 @@ import { buildProject } from './utils'
 const subscriber = createClient()
 subscriber.connect()
 
+const publisher = createClient()
+publisher.connect()
+
 async function main(){
     while(1){
         const response = await subscriber.brPop(
@@ -16,6 +19,8 @@ async function main(){
         console.log('files downloaded')
         await buildProject(`${response?.element}`)
         await copyFinalDist(`${response?.element}`)
+        
+        publisher.hSet("status", `${response?.element}`, "deployed")
     }
 }
 main() 

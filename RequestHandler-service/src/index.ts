@@ -15,13 +15,14 @@ app.get("/{*splat}", async (req, res) => {
 
     const id = host.split(".")[0];
     const filePath = req.path
+    const normalizedPath = filePath.replace(/^\//, "")
 
     const contents = await s3.getObject({
         Bucket: "vercel",
-        Key: `dist/${id}${filePath}`
+        Key: `dist/${id}/${normalizedPath}`
     }).promise();
     
-    const type = filePath.endsWith("html") ? "text/html" : filePath.endsWith("css") ? "text/css" : "application/javascript"
+    const type = normalizedPath.endsWith("html") ? "text/html" : normalizedPath.endsWith("css") ? "text/css" : "application/javascript"
     res.set("Content-Type", type);
 
     res.send(contents.Body);

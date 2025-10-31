@@ -9,6 +9,9 @@ import { createClient } from 'redis'
 const publisher = createClient()
 publisher.connect()
 
+const subscriber = createClient()
+subscriber.connect()
+
 const app = express()
 const git = simpleGit()
 
@@ -40,15 +43,33 @@ app.post('/upload',async(req, res)=>{
 		console.log(error);	
 	}
 	const allFilePath = getAllFiles(path.join(__dirname,'..',`out/${id}`))
-	allFilePath.forEach(async file=>{
+	await Promise.all(
+		allFilePath.map(async file=>{
 		await uploadFile(file.substr(__dirname.length), file);
 	})
+	)
 
 	await publisher.lPush('build-queue', id)
+	await publisher.hSet("status", id, "uploaded")
     res.json({
 		id: id,
 		message: "Repo Uploaded successfully!!",
 		statuscode: 200
+	})
+})
+
+app.get('/status/:id', async (req,res)=>{
+	const id = req.params.id
+	const status = await subscriber.hGet("status",id as string)
+
+	if(!id || !status){
+		throw new Error("Internal server Error")
+	}
+
+	res
+	.status(200)
+	.json({
+		"status": status
 	})
 })
 
